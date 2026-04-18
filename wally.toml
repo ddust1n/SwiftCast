@@ -1,0 +1,12 @@
+[package]
+name = "ddust1n/swiftcast"
+description = "Simple, fast and easy projectiles!"
+version = "1.4.0"
+license = "LGPL-3.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+exclude = ["**"]
+include = ["src", "src/**", "default.project.json", "wally.toml"]
+
+[dependencies]
