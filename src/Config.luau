@@ -10,11 +10,12 @@ local Config: Types.Config = {
 
 	-- Switches between BulkMoveTo and Transform movement methods
 	MovementMethod = "BulkMoveTo",
-	
+
 	-- The offset ray adds to the raycast position to search for the next hit
 	RaySearchOffset = 0.001,
-	
+
 	-- Fixed delta time for velocity and position updates to prevent drifting
-	FixedDeltaTime = 1/240,
+	FixedDeltaTime = 1 / 240,
 }
+
 return table.freeze(Config)

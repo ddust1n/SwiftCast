@@ -5,11 +5,11 @@ local RaycastFunctions = {}
 
 local Types = require(script.Parent.Types)
 
-RaycastFunctions.Raycast = function(rayOrigin, rayDirection, raycastParams, projectile, iteration)
+RaycastFunctions.Raycast = function(rayOrigin, rayDirection, raycastParams)
 	return workspace:Raycast(rayOrigin, rayDirection, raycastParams)
 end :: Types.RaycastFunction
 
-RaycastFunctions.Blockcast = function(rayOrigin, rayDirection, raycastParams, projectile, iteration)
+RaycastFunctions.Blockcast = function(rayOrigin, rayDirection, raycastParams, projectile)
 	if not projectile.BlockcastSize then
 		warn("[SwiftCast]: No BlockcastSize assigned for the projectile.")
 		return nil
@@ -17,7 +17,7 @@ RaycastFunctions.Blockcast = function(rayOrigin, rayDirection, raycastParams, pr
 	return workspace:Blockcast(CFrame.lookAlong(rayOrigin, rayDirection), projectile.BlockcastSize, rayDirection, raycastParams)
 end :: Types.RaycastFunction
 
-RaycastFunctions.Spherecast = function(rayOrigin, rayDirection, raycastParams, projectile, iteration)
+RaycastFunctions.Spherecast = function(rayOrigin, rayDirection, raycastParams, projectile)
 	if not projectile.SpherecastRadius then
 		warn("[SwiftCast]: No SpherecastRadius assigned for the projectile.")
 		return nil
@@ -25,7 +25,7 @@ RaycastFunctions.Spherecast = function(rayOrigin, rayDirection, raycastParams, p
 	return workspace:Spherecast(rayOrigin, projectile.SpherecastRadius, rayDirection, raycastParams)
 end :: Types.RaycastFunction
 
-RaycastFunctions.Shapecast = function(rayOrigin, rayDirection, raycastParams, projectile, iteration)
+RaycastFunctions.Shapecast = function(rayOrigin, rayDirection, raycastParams, projectile)
 	if not projectile.ShapecastPart then
 		warn("[SwiftCast]: No ShapecastPart assigned for the projectile.")
 		return nil

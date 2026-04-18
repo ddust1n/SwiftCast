@@ -18,10 +18,10 @@ local EPSILON = 1e-6
 local RAY_SEARCH_OFFSET = Config.RaySearchOffset
 local FIXED_DELTA_TIME = Config.FixedDeltaTime
 
-local ActiveInstancedProjectiles: {Projectile} = {}
-local ActiveInstancelessProjectiles: {Projectile} = {}
+local ActiveInstancedProjectiles: { Projectile } = {}
+local ActiveInstancelessProjectiles: { Projectile } = {}
 
-local QueuedProjectileEvents: {ProjectileEvent} = {}
+local QueuedProjectileEvents: { ProjectileEvent } = {}
 
 local PartTemplate = Instance.new("Part") :: BasePart
 local Motor6DTemplate = Instance.new("Motor6D")
@@ -39,7 +39,9 @@ if Config.MovementMethod == "Transform" then
 	Motor6DAnchor.CFrame = CFrame.identity
 	Motor6DAnchor.Parent = workspace
 	Motor6DAnchor:GetPropertyChangedSignal("CFrame"):Connect(function()
-		if Motor6DAnchor.CFrame == CFrame.identity then return end
+		if Motor6DAnchor.CFrame == CFrame.identity then
+			return
+		end
 		warn("[SwiftCast]: Motor6DAnchor part cframe has changed. Transform mode may not work properly.")
 	end)
 end
@@ -67,7 +69,9 @@ end
 
 local function ConnectTransform(projectile: Projectile)
 	local projectilePart = projectile.ProjectilePart
-	if not projectilePart then return end
+	if not projectilePart then
+		return
+	end
 	projectilePart.Anchored = false
 	local motor6d = Instance.new("Motor6D")
 	motor6d.Transform = projectilePart.CFrame
@@ -77,12 +81,12 @@ local function ConnectTransform(projectile: Projectile)
 	ClearPostTransformConnections(projectile)
 	projectile._ProjectileMotor6D = motor6d
 	if projectile.PostTransform or projectile.PostTransformSafe then
-		projectile._PostTransformFireConnection = RunService.Heartbeat:Once(function(deltaTime: number)
+		projectile._PostTransformFireConnection = RunService.Heartbeat:Once(function()
 			if projectile.PostTransform then
 				projectile.PostTransform(projectile)
 			end
 			if projectile.PostTransformSafe then
-				projectile._PostTransformFireConnection = RunService.Heartbeat:Once(function(deltaTime: number)
+				projectile._PostTransformFireConnection = RunService.Heartbeat:Once(function()
 					projectile.PostTransformSafe(projectile)
 				end)
 			end
@@ -99,8 +103,10 @@ local function HasRayPierced(projectile: Projectile, raycastResult: RaycastResul
 	end
 end
 
-local function QueueProjectileEvent(callback: (Types.EventCallback)?, projectile: Projectile, arg1: any, arg2: any)
-	if not callback then return end
+local function QueueProjectileEvent(callback: Types.EventCallback?, projectile: Projectile, arg1: any, arg2: any)
+	if not callback then
+		return
+	end
 	table.insert(QueuedProjectileEvents, { Callback = callback, Projectile = projectile, Arg1 = arg1, Arg2 = arg2 })
 end
 
@@ -114,13 +120,15 @@ if Config.UseProtectedCalls == true then
 		table.clear(QueuedProjectileEvents)
 	end
 	DispatchLastProjectileEvents = function(removeCount)
-		if removeCount <= 0 then return end
+		if removeCount <= 0 then
+			return
+		end
 		local eventCount = #QueuedProjectileEvents
 		for eventIndex = (eventCount - removeCount + 1), eventCount do
 			local event = QueuedProjectileEvents[eventIndex]
 			xpcall(event.Callback, OnError, event.Projectile, event.Arg1, event.Arg2)
 		end
-		for i = 1, removeCount do
+		for index = 1, removeCount do
 			table.remove(QueuedProjectileEvents)
 		end
 	end
@@ -132,19 +140,21 @@ else
 		table.clear(QueuedProjectileEvents)
 	end
 	DispatchLastProjectileEvents = function(removeCount)
-		if removeCount <= 0 then return end
+		if removeCount <= 0 then
+			return
+		end
 		local eventCount = #QueuedProjectileEvents
 		for eventIndex = (eventCount - removeCount + 1), eventCount do
 			local event = QueuedProjectileEvents[eventIndex]
 			event.Callback(event.Projectile, event.Arg1, event.Arg2)
 		end
-		for i = 1, removeCount do
+		for index = 1, removeCount do
 			table.remove(QueuedProjectileEvents)
 		end
 	end
 end
 
-local function InsertProjectile(projectileArray: {Projectile}, projectile: Projectile)
+local function InsertProjectile(projectileArray: { Projectile }, projectile: Projectile)
 	local index = #projectileArray + 1
 	projectile._Index = index
 	table.insert(projectileArray, projectile)
@@ -152,7 +162,9 @@ local function InsertProjectile(projectileArray: {Projectile}, projectile: Proje
 end
 
 local function RemoveProjectile(projectile: Projectile)
-	if not projectile._ProjectileArray then return end
+	if not projectile._ProjectileArray then
+		return
+	end
 	local projectileArray = projectile._ProjectileArray
 	local index = projectile._Index
 	local lastProjectile = table.remove(projectileArray) :: Projectile
@@ -164,7 +176,9 @@ local function RemoveProjectile(projectile: Projectile)
 end
 
 local function DestroyProjectile(projectile: Projectile)
-	if projectile._Destroyed then return end
+	if projectile._Destroyed then
+		return
+	end
 	RemoveProjectile(projectile)
 	DestroyProjectileMotor6D(projectile)
 	ClearPostTransformConnections(projectile)
@@ -172,7 +186,7 @@ local function DestroyProjectile(projectile: Projectile)
 	projectile._Destroyed = true
 end
 
-local function MoveProjectileToArray(targetProjectileArray: {Projectile}, projectile: Projectile)
+local function MoveProjectileToArray(targetProjectileArray: { Projectile }, projectile: Projectile)
 	RemoveProjectile(projectile)
 	InsertProjectile(targetProjectileArray, projectile)
 end
@@ -188,52 +202,52 @@ local function UpdateProjectile(projectile: Projectile, deltaTime: number)
 		MarkProjectileAsDestroyed(projectile, "MaxTime")
 		return
 	end
-	
+
 	local accumulator = projectile._Accumulator + deltaTime
 	if accumulator < FIXED_DELTA_TIME then
 		return
 	end
-	
+
 	local stepCount = accumulator // FIXED_DELTA_TIME
 	local stepDeltaTime = stepCount * FIXED_DELTA_TIME
 	projectile._Accumulator = accumulator - stepDeltaTime
-	
+
 	local position = projectile.Position
 	local acceleration = projectile.Acceleration
-	
-	-- Closed-Form discrete fixed timestep integration under constant-acceleration 
+
+	-- Closed-Form discrete fixed timestep integration under constant-acceleration
 	local newVelocity = projectile.Velocity
-	local newPosition = position
-		+ newVelocity * stepDeltaTime
-		+ 0.5 * acceleration * FIXED_DELTA_TIME * FIXED_DELTA_TIME * stepCount * (stepCount + 1)
+	local newPosition = position + newVelocity * stepDeltaTime + 0.5 * acceleration * FIXED_DELTA_TIME * FIXED_DELTA_TIME * stepCount * (stepCount + 1)
 	newVelocity += acceleration * stepDeltaTime
-	
+
 	local deltaDistance = (newPosition - position).Magnitude
 	if deltaDistance <= EPSILON then
 		QueueProjectileEvent(projectile.OnStep, projectile, stepDeltaTime)
 		return
 	end
-	
+
 	projectile.DistanceTravelled += deltaDistance
 	if projectile.DistanceTravelled >= projectile.MaxFlyDistance then
 		MarkProjectileAsDestroyed(projectile, "MaxDistance")
 		return
 	end
-	
+
 	QueueProjectileEvent(projectile.OnStep, projectile, stepDeltaTime)
 
 	local direction = newVelocity.Unit
 	local raycastParams = projectile.RaycastParams
 	local raycastFunction = projectile.RaycastFunction
-	
+
 	local rayOrigin = position
 	local rayOffset = direction * RAY_SEARCH_OFFSET
 	local remainingDistance = deltaDistance
 
 	for iteration = 1, projectile.MaxPiercesPerStep do
 		local raycastResult = raycastFunction(rayOrigin, direction * remainingDistance, raycastParams, projectile, iteration)
-		if not raycastResult then break end
-		
+		if not raycastResult then
+			break
+		end
+
 		local hasPierced = HasRayPierced(projectile, raycastResult)
 		QueueProjectileEvent(projectile.OnHit, projectile, raycastResult, hasPierced)
 		if hasPierced ~= true then
@@ -250,7 +264,7 @@ local function UpdateProjectile(projectile: Projectile, deltaTime: number)
 
 		rayOrigin = raycastResult.Position + rayOffset
 	end
-	
+
 	QueueProjectileEvent(projectile.OnPositionChange, projectile, newPosition, position)
 
 	projectile.PreviousPosition = position
@@ -258,9 +272,9 @@ local function UpdateProjectile(projectile: Projectile, deltaTime: number)
 	projectile.Velocity = newVelocity
 end
 
-local UpdateInstancedProjectiles: (deltaTime: number, destroyedProjectiles: {Projectile}) -> ()
+local UpdateInstancedProjectiles: (deltaTime: number, destroyedProjectiles: { Projectile }) -> ()
 if Config.MovementMethod == "Transform" then
-	UpdateInstancedProjectiles = function(deltaTime: number, destroyedProjectiles: {Projectile})
+	UpdateInstancedProjectiles = function(deltaTime: number, destroyedProjectiles: { Projectile })
 		for index, projectile in ActiveInstancedProjectiles do
 			UpdateProjectile(projectile, deltaTime)
 			projectile._ProjectileMotor6D.Transform = projectile.ProjectilePartRotation.Rotation + projectile.Position
@@ -270,9 +284,9 @@ if Config.MovementMethod == "Transform" then
 		end
 	end
 else
-	UpdateInstancedProjectiles = function(deltaTime: number, destroyedProjectiles: {Projectile})
-		local cframes = table.create(#ActiveInstancedProjectiles, CFrame.identity) :: {CFrame}
-		local parts = table.create(#ActiveInstancedProjectiles, PartTemplate) :: {BasePart}
+	UpdateInstancedProjectiles = function(deltaTime: number, destroyedProjectiles: { Projectile })
+		local cframes = table.create(#ActiveInstancedProjectiles, CFrame.identity) :: { CFrame }
+		local parts = table.create(#ActiveInstancedProjectiles, PartTemplate) :: { BasePart }
 		for index, projectile in ActiveInstancedProjectiles do
 			UpdateProjectile(projectile, deltaTime)
 			cframes[index] = projectile.ProjectilePartRotation.Rotation + projectile.Position
@@ -285,8 +299,8 @@ else
 	end
 end
 
-local function NewProjectile(constructorArgs: ProjectileConstructorArgs, projectileSettings: ProjectileSettings?): Projectile
-	local projectileSettings = projectileSettings or DefaultProjectileSettings
+local function NewProjectile(constructorArgs: ProjectileConstructorArgs, rawSettings: ProjectileSettings?): Projectile
+	local projectileSettings = rawSettings or DefaultProjectileSettings
 	local position = constructorArgs.Position or Vector3.zero
 	local canPierce = constructorArgs.CanPierce :: Types.CanPierce
 	if canPierce == nil then
@@ -308,7 +322,7 @@ local function NewProjectile(constructorArgs: ProjectileConstructorArgs, project
 		PreviousPosition = position,
 		Velocity = constructorArgs.Velocity or Vector3.zero,
 		Acceleration = constructorArgs.Acceleration or Vector3.zero,
-		
+
 		Elapsed = 0,
 		DistanceTravelled = 0,
 
@@ -321,7 +335,7 @@ local function NewProjectile(constructorArgs: ProjectileConstructorArgs, project
 		ProjectilePartRotation = constructorArgs.ProjectilePartRotation or projectilePartRotation,
 
 		CanPierce = canPierce,
-		
+
 		OnHit = constructorArgs.OnHit,
 		OnStep = constructorArgs.OnStep,
 		OnPositionChange = constructorArgs.OnPositionChange,
@@ -334,11 +348,11 @@ local function NewProjectile(constructorArgs: ProjectileConstructorArgs, project
 		ShapecastPart = constructorArgs.ShapecastPart or projectileSettings.ShapecastPart,
 		UserData = constructorArgs.UserData,
 	}
-	
+
 	if Config.MovementMethod == "Transform" then
 		ConnectTransform(projectile)
 	end
-	
+
 	return projectile
 end
 
@@ -374,7 +388,9 @@ end
 
 -- Activates a projectile making it start simulating
 function Simulation.ActivateProjectile(projectile: Projectile)
-	if projectile._Active then return end
+	if projectile._Active then
+		return
+	end
 	projectile._Active = true
 	if projectile.ProjectilePart then
 		MoveProjectileToArray(ActiveInstancedProjectiles, projectile)
@@ -385,7 +401,9 @@ end
 
 -- Deactivates a projectile making it stop simulating
 function Simulation.DeactivateProjectile(projectile: Projectile)
-	if not projectile._Active then return end
+	if not projectile._Active then
+		return
+	end
 	projectile._Active = false
 	RemoveProjectile(projectile)
 end
@@ -413,7 +431,9 @@ end
 function Simulation.SetProjectilePart(projectile: Projectile, basePart: BasePart?)
 	local oldPart = projectile.ProjectilePart
 	projectile.ProjectilePart = basePart
-	if (oldPart == nil) == (basePart == nil) then return end
+	if (oldPart == nil) == (basePart == nil) then
+		return
+	end
 
 	DestroyProjectileMotor6D(projectile)
 	if Config.MovementMethod == "Transform" then
@@ -429,14 +449,18 @@ end
 
 -- Starts SwiftCast simulation
 function Simulation.Start()
-	if Simulation.IsRunning then return end
+	if Simulation.IsRunning then
+		return
+	end
 	Simulation.IsRunning = true
 	StepConnection = RunService.PreSimulation:Connect(Simulation.Step)
 end
 
 -- Stops SwiftCast simulation
 function Simulation.Stop()
-	if not Simulation.IsRunning then return end
+	if not Simulation.IsRunning then
+		return
+	end
 	Simulation.IsRunning = false
 	if StepConnection then
 		StepConnection:Disconnect()
@@ -446,7 +470,7 @@ end
 
 -- Steps SwiftCast simulation
 function Simulation.Step(deltaTime: number)
-	local destroyedProjectiles: {Projectile} = {}
+	local destroyedProjectiles: { Projectile } = {}
 	for index, projectile in ActiveInstancelessProjectiles do
 		UpdateProjectile(projectile, deltaTime)
 		if projectile._MarkedForDestruction then
@@ -461,7 +485,7 @@ function Simulation.Step(deltaTime: number)
 	for _, projectile in destroyedProjectiles do
 		DestroyProjectile(projectile)
 	end
-	
+
 	DispatchAllProjectileEvents()
 end
 
